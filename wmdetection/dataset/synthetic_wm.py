@@ -45,11 +45,20 @@ def place_text(image, text, color=(255,255,255), alpha=1, position=(0, 0), angle
         text_w, text_h = get_text_size(text, font, font_scale, thickness)
         rotate_M = cv2.getRotationMatrix2D((position[0]+text_w//2, position[1]-text_h//2), angle, 1)
         overlay = cv2.warpAffine(overlay, rotate_M, (overlay.shape[1], overlay.shape[0]))
-    
+
+
+    arr_gray = np.average(overlay, weights=[0.2989, 0.5870, 0.1140], axis=2)
+    y_indices, x_indices = np.where(arr_gray > 0)
+    center_y = np.average(y_indices, weights=arr_gray[arr_gray > 0]) / arr_gray.shape[0]
+    center_x = np.average(x_indices, weights=arr_gray[arr_gray > 0]) / arr_gray.shape[1]
+    width = (np.max(x_indices) - np.min(x_indices)) / arr_gray.shape[1]
+    height = (np.max(y_indices) - np.min(y_indices)) / arr_gray.shape[0]
+    center_data = [(center_x, center_y, width, height)]
+
     overlay[overlay==0] = image[overlay==0]
     cv2.addWeighted(overlay, alpha, output, 1-alpha, 0, output)
     
-    return Image.fromarray(output)
+    return Image.fromarray(output), center_data
 
 def get_random_font_params(text, text_height, fonts, font_thickness_range):
     font = random.choice(fonts)
@@ -158,24 +167,43 @@ def place_text_checkerboard(image, text, color=(255,255,255), alpha=1, step_x=0.
     output = image.copy()
     
     text_w, text_h = get_text_size(text, font, font_scale, thickness)
-    
+
+    if angle != 0:
+        rotate_M = cv2.getRotationMatrix2D((w//2, h//2), angle, 1)
+
     c = 0
+    center_data = []
     for rel_pos_x in np.arange(0, 1, step_x):
         c += 1
         for rel_pos_y in np.arange(text_h/h+(c%2)*step_y/2, 1, step_y):
             position = (int(w*rel_pos_x), int(h*rel_pos_y))
+            temp_overlay = np.zeros((overlay_size[1], overlay_size[0], 3))
+            cv2.putText(temp_overlay, text, position, font, font_scale, color, thickness)
+            if angle != 0:
+                temp_overlay = cv2.warpAffine(temp_overlay, rotate_M, (temp_overlay.shape[1], temp_overlay.shape[0]))
+            temp_overlay = center_crop(temp_overlay, image_size[0], image_size[1])
+            arr_gray = np.average(temp_overlay, weights=[0.2989, 0.5870, 0.1140], axis=2)
+            y_indices, x_indices = np.where(arr_gray > 0)
+            if np.sum(y_indices) > 0 and np.sum(x_indices) > 0:
+                center_y = np.average(y_indices, weights=arr_gray[arr_gray > 0]) / arr_gray.shape[0]
+                center_x = np.average(x_indices, weights=arr_gray[arr_gray > 0]) / arr_gray.shape[1]
+                width = (np.max(x_indices) - np.min(x_indices)) / arr_gray.shape[1]
+                height = (np.max(y_indices) - np.min(y_indices)) / arr_gray.shape[0]
+                center_data.append((center_x, center_y, width, height))
+
             cv2.putText(overlay, text, position, font, font_scale, color, thickness)
-    
+
     if angle != 0:
-        rotate_M = cv2.getRotationMatrix2D((w//2, h//2), angle, 1)
         overlay = cv2.warpAffine(overlay, rotate_M, (overlay.shape[1], overlay.shape[0]))
+
     
     overlay = center_crop(overlay, image_size[0], image_size[1])
     overlay[overlay==0] = image[overlay==0]
     overlay = overlay.astype(np.uint8)
     cv2.addWeighted(overlay, alpha, output, 1-alpha, 0, output)
-    
-    return Image.fromarray(output)
+
+    return Image.fromarray(output), center_data
+
 
 def place_random_diagonal_watermark(
         pil_image, 

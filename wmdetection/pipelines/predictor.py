@@ -2,6 +2,7 @@ import os
 from tqdm import tqdm
 from PIL import Image
 import numpy as np
+import time
 
 import torch
 import torchvision
@@ -67,7 +68,12 @@ class WatermarksPredictor:
         result = []
         for batch in loader:
             with torch.no_grad():
+
+                x = time.time()
+                print(f"batch {batch.shape}")
                 outputs = self.wm_model(batch.to(self.device))
+                y = time.time() - x
+                print(f"xx time: {y}")
                 result.extend(torch.max(outputs, 1)[1].cpu().reshape(-1).tolist())
         
         return result
