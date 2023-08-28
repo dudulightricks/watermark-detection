@@ -1,7 +1,7 @@
 import os
 from PIL import Image
 
-IMAGE_EXT = set(['.jpg', '.JPG', '.jpeg', '.JPEG', '.png', '.PNG'])
+IMAGE_EXT = set(['.jpg', '.JPG', '.jpeg', '.JPEG', '.png', '.PNG', '.heic'])
 
 def get_extenstion(filepath):
     return os.path.splitext(filepath)[-1]

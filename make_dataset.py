@@ -8,9 +8,12 @@ import pandas as pd
 import cv2
 import string
 import random
+from pillow_heif import register_heif_opener
 
 from wmdetection.dataset.synthetic_wm import *
 from wmdetection.utils import list_images
+
+register_heif_opener()
 
 def generate_random_string(length):
     return ''.join(random.choices(string.ascii_lowercase + string.ascii_uppercase + string.digits + ' ', k=length))
@@ -87,6 +90,23 @@ def random_angled_watermark(pil_image, text):
         colors=colors,
     )
 
+def random_getty_watermark(pil_image, text):
+    return place_random_getty_watermark(
+        pil_image,
+        text,
+        random_angle=(-15,15),
+        text_alpha_range=alpha_range,
+    )
+
+def random_centered_getty_watermark(pil_image, text):
+    return place_random_centered_getty_watermark(
+        pil_image,
+        text,
+        center_point_range_shift=(-0.005, 0.005),
+        random_angle=(-45,45),
+        text_alpha_range=alpha_range,
+    )
+
 
 import math
 
@@ -130,10 +150,11 @@ font_thickness_range = (3, 7)
 funtions = [
     random_watermark, random_angled_watermark,
     centered_watermark, centered_angled_watermark,
-    diagonal_watermark
+    diagonal_watermark, random_getty_watermark,
+    random_centered_getty_watermark,
 ]
 
-chances = [0.2, 0.05, 0.3, 0.15, 0.3]
+chances = [0.2, 0.05, 0.25, 0.15, 0.2, 0.05, 0.1]
 assert sum(chances) == 1
 
 # words to use in watermarks
@@ -163,6 +184,10 @@ def resize_by_max(img, size=600):
     rescale = size / img.size[maxind]
     return img.resize([int(i * rescale) for i in img.size])
 
+def resize_by_min(img, size=600):
+    minind = 0 if img.size[0] <= img.size[1] else 1
+    rescale = size / img.size[minind]
+    return img.resize([int(i * rescale) for i in img.size])
 
 def get_random_text():
     t = np.random.choice(['url', 'text', 'fixed'], p=[url_chance, text_chance, fixed_chance])
@@ -179,12 +204,12 @@ def get_random_text():
 
 def generate_watermark(img):
     watermark_func = np.random.choice(funtions, 1, p=chances)[0]
-    img_resized = resize_by_max(img, size=600)
+    img_resized = resize_by_min(img, size=336)
     return watermark_func(img_resized, get_random_text())
 
 
 clean_folders = [
-    ('./images/clean/', 7),
+    ('/opt/watermark-detection/images/images_256/', 100), #959450
     # add your folders and images count
 ]
 
@@ -198,7 +223,7 @@ for imgs in folder2images.values():
 len(all_paths)
 
 # directory there result images will be saved
-dir_save_to = "./dataset/synthetic_wm"
+dir_save_to = "./dataset/synthetic_wm_1mil_336"
 
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -211,7 +236,6 @@ os.makedirs(images_dir, exist_ok=True)
 os.makedirs(labels_dir, exist_ok=True)
 
 def create_wm_image(filepath):
-    print(f"working on image {filepath}")
     image = Image.open(filepath)
     new_filename = "wm_" + os.path.basename(filepath)
     wm_img, center_data = generate_watermark(image)
@@ -221,6 +245,5 @@ def create_wm_image(filepath):
             f.write("0 " + ' '.join(map(str, center_record)) + '\n')
 
     wm_img.save(os.path.join(images_dir, new_filename))
-#%%
-process_map(create_wm_image, all_paths, max_workers=16)
 
+process_map(create_wm_image, all_paths, max_workers=16)
