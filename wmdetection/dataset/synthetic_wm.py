@@ -113,23 +113,30 @@ def place_random_centered_watermark(
 
 
 def place_random_centered_getty_watermark(
-        pil_image,
-        text,
-        center_point_range_shift=(-0.025, 0.025),
-        random_angle=(0, 0),
-        text_alpha_range=(0.23, 0.5),
+    pil_image,
+    text,
+    center_point_range_shift=(-0.025, 0.025),
+    random_angle=(0, 0),
+    text_alpha_range=(0.23, 0.5),
+    watermark_bg_color_range=(0.3, 0.7),
+    watermark_bg_alpha_range=(0.2, 0.3),
 ):
     w, h = pil_image.size
+    color = random_float(*watermark_bg_color_range)
+    background_alpha = random_float(*watermark_bg_alpha_range)
 
     position_shift_x = random_float(*center_point_range_shift)
     offset_x = int(w * position_shift_x)
     position_shift_y = random_float(*center_point_range_shift)
     offset_y = int(w * position_shift_y)
 
-    watermark = create_getty_primary_text_watermark(500, 85, text, 0.2, background_gray_level=0.4)
+    watermark = create_getty_primary_text_watermark(
+        500, 85, text, background_alpha, background_gray_level=color, inner_scale=random_float(0.5, 1)
+    )
     num = ''.join(["{}".format(random.randint(0, 9)) for _ in range(0, 10)])
-    secondary_watermark = create_getty_secondary_text_watermark(95, 18, num, 0.3,
-                                                                background_gray_level=0.6)
+    secondary_watermark = create_getty_secondary_text_watermark(
+        95, 18, num, background_alpha, background_gray_level=color, inner_scale=random_float(0.5, 1)
+    )
 
     h_wm, w_wm, _ = watermark.shape
     wm_new_width = random.randint(100, w // 2)
@@ -162,13 +169,19 @@ def place_random_getty_watermark(
         text,
         random_angle=(0, 0),
         text_alpha_range=(0.18, 0.4),
+        watermark_bg_color_range=(0.3, 0.7),
+        watermark_bg_alpha_range=(0.2, 0.3),
 ):
     w, h = pil_image.size
-
-    watermark = create_getty_primary_text_watermark(500, 85, text, 0.2, background_gray_level=0.4)
+    color = random_float(*watermark_bg_color_range)
+    background_alpha = random_float(*watermark_bg_alpha_range)
+    watermark = create_getty_primary_text_watermark(
+        500, 85, text, background_alpha, background_gray_level=color, inner_scale=random_float(0.5, 1)
+    )
     num = ''.join(["{}".format(random.randint(0, 9)) for _ in range(0, 10)])
-    secondary_watermark = create_getty_secondary_text_watermark(95, 18, num, 0.3,
-                                                                background_gray_level=0.6)
+    secondary_watermark = create_getty_secondary_text_watermark(
+        95, 18, num, background_alpha, background_gray_level=color, inner_scale=random_float(0.5, 1)
+    )
 
     h_wm, w_wm, _ = watermark.shape
     wm_new_width = random.randint(3 * w // 8, 5 * w // 8)
@@ -355,9 +368,11 @@ def place_random_diagonal_watermark(
         )
 
 def create_getty_primary_text_watermark(
-        width, height, text, background_alpha, background_gray_level=0,
+        width, height, text, background_alpha, background_gray_level=0, inner_scale=1.0,
         watermark_path="wmdetection/dataset/getty-images-1-logo.png"
 ):
+    width = int(inner_scale * width)
+    height = int(inner_scale * height)
     bg_color = 255.0 * background_gray_level
     background_color = (bg_color, bg_color, bg_color, 255 * background_alpha)
     canvas = np.full(shape=(height, width, 4), fill_value=background_color).astype(np.float32)
@@ -371,7 +386,7 @@ def create_getty_primary_text_watermark(
     target_watermark_height = int(0.6 * height)
     target_watermark_width = int((target_watermark_height / original_watermark_h) * original_watermark_w)
     watermark = cv2.resize(np.array(watermark), (target_watermark_width, target_watermark_height), interpolation=cv2.INTER_AREA)
-    watermark_top, watermark_left = 0, 5
+    watermark_top, watermark_left = 0, int(5 * inner_scale)
     watermark_bottom = watermark_top + target_watermark_height
     watermark_right = watermark_left + target_watermark_width
     canvas[watermark_top: watermark_bottom, watermark_left: watermark_right] += watermark
@@ -383,12 +398,15 @@ def create_getty_primary_text_watermark(
 
     color = (255.0, 255.0, 255.0, 255.0)
     font, font_scale, font_thickness = get_random_font_params(text, text_height, fonts, font_thickness_range)
-    cv2.putText(canvas, text, (watermark_left + 7, watermark_bottom + 10), font, font_scale, color, font_thickness)
+    cv2.putText(canvas, text, (watermark_left + int(7 * inner_scale), watermark_bottom + int(10 * inner_scale)),
+                font, font_scale, color, font_thickness)
 
     canvas = np.clip(canvas, 0, 255).astype(np.uint8)
     return canvas
 
-def create_getty_secondary_text_watermark(width, height, text, background_alpha, background_gray_level=0):
+def create_getty_secondary_text_watermark(width, height, text, background_alpha, background_gray_level=0, inner_scale=1.0):
+    width = int(inner_scale * width)
+    height = int(inner_scale * height)
     bg_color = 255.0 * background_gray_level
     background_color = (bg_color, bg_color, bg_color, 255 * background_alpha)
     canvas = np.full(shape=(height, width, 4), fill_value=background_color).astype(np.float32)
@@ -401,7 +419,7 @@ def create_getty_secondary_text_watermark(width, height, text, background_alpha,
     color = (255.0, 255.0, 255.0, 255.0)
     font, font_scale, font_thickness = get_random_font_params(text, text_height, fonts, font_thickness_range)
     text_width, text_height = cv2.getTextSize(text, font, font_scale, font_thickness)[0]
-    cv2.putText(canvas, text, (width - text_width - 5, (height + text_height) // 2), font, font_scale, color)
+    cv2.putText(canvas, text, (width - text_width - int(5 * inner_scale), (height + text_height) // 2), font, font_scale, color)
 
     canvas = np.clip(canvas, 0, 255).astype(np.uint8)
     return canvas
