@@ -162,13 +162,13 @@ funtions = [
     random_centered_getty_watermark, random_centered_shutterstock_watermark
 ]
 
-chances = [0.2, 0.05, 0.25, 0.15, 0.2, 0.05, 0.1]
+chances = [0.19, 0.05, 0.24, 0.15, 0.19, 0.05, 0.08, 0.05]
 assert sum(chances) == 1
 
 # words to use in watermarks
 fixed_texts = ['gettyimages', 'photocase', 'freepik', 'BIGSTOCK', 'pexels', 'pixabay',
                'lori', 'lori.ru', 'stockfresh', 'www.acrylical.com', 'ebay', 'AVITO', 'dreamstime',
-               'AdobeStock', 'envatoelemants', 'fineart']
+               'AdobeStock', 'envatoelemants', 'fineart', 'shutterstock']
 
 # url length interval
 url_len_range = [3, 8]
