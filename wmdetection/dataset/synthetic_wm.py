@@ -223,6 +223,7 @@ def place_random_centered_shutterstock_watermark(
 
     watermark = Image.open("wmdetection/dataset/shutterstock-logo.png")
     watermark = np.array(watermark).astype(np.float32)
+    watermark = np.clip(watermark * random_float(0.8, 2.0), 0, 255)
     watermark = np.stack([watermark] * 3, axis=-1)
 
     h_wm, w_wm, _ = watermark.shape
