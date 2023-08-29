@@ -163,6 +163,7 @@ funtions = [
 ]
 
 chances = [0.19, 0.05, 0.24, 0.15, 0.19, 0.05, 0.08, 0.05]
+# chances = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]
 assert sum(chances) == 1
 
 # words to use in watermarks
@@ -217,7 +218,7 @@ def generate_watermark(img):
 
 
 clean_folders = [
-    ('/opt/watermark-detection/images/images_256/', 100), #959450
+    ('/opt/watermark-detection/images/images_256/', 959450), #959450
     # add your folders and images count
 ]
 
@@ -254,4 +255,4 @@ def create_wm_image(filepath):
 
     wm_img.save(os.path.join(images_dir, new_filename))
 
-process_map(create_wm_image, all_paths, max_workers=16)
+process_map(create_wm_image, all_paths, max_workers=16, chunksize=10)

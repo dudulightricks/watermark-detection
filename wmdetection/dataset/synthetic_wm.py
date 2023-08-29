@@ -221,7 +221,7 @@ def place_random_centered_shutterstock_watermark(
     position_shift_y = random_float(*center_point_range_shift)
     offset_y = int(w * position_shift_y)
 
-    watermark = Image.open("wmdetection/dataset/shutterstock-logo.png")
+    watermark = Image.open("/opt/watermark-detection/wmdetection/dataset/shutterstock-logo.png")
     watermark = np.array(watermark).astype(np.float32)
     watermark = np.clip(watermark * random_float(0.8, 2.0), 0, 255)
     watermark = np.stack([watermark] * 3, axis=-1)
@@ -370,7 +370,7 @@ def place_random_diagonal_watermark(
 
 def create_getty_primary_text_watermark(
         width, height, text, background_alpha, background_gray_level=0, inner_scale=1.0,
-        watermark_path="wmdetection/dataset/getty-images-1-logo.png"
+        watermark_path="/opt/watermark-detection/wmdetection/dataset/getty-images-1-logo.png"
 ):
     width = int(inner_scale * width)
     height = int(inner_scale * height)
