@@ -103,7 +103,15 @@ def random_centered_getty_watermark(pil_image, text):
         pil_image,
         text,
         center_point_range_shift=(-0.005, 0.005),
-        random_angle=(-45,45),
+        random_angle=(-10, 10),
+        text_alpha_range=alpha_range,
+    )
+
+def random_centered_shutterstock_watermark(pil_image, text):
+    return place_random_centered_shutterstock_watermark(
+        pil_image,
+        center_point_range_shift=(-0.005, 0.005),
+        random_angle=(-10, 10),
         text_alpha_range=alpha_range,
     )
 
@@ -151,7 +159,7 @@ funtions = [
     random_watermark, random_angled_watermark,
     centered_watermark, centered_angled_watermark,
     diagonal_watermark, random_getty_watermark,
-    random_centered_getty_watermark,
+    random_centered_getty_watermark, random_centered_shutterstock_watermark
 ]
 
 chances = [0.2, 0.05, 0.25, 0.15, 0.2, 0.05, 0.1]

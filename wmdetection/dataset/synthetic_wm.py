@@ -195,6 +195,38 @@ def place_random_getty_watermark(
         angle=random.randint(*random_angle),
     )
 
+def place_random_centered_shutterstock_watermark(
+        pil_image,
+        center_point_range_shift=(-0.025, 0.025),
+        random_angle=(0, 0),
+        text_alpha_range=(0.23, 0.5),
+):
+    w, h = pil_image.size
+
+    position_shift_x = random_float(*center_point_range_shift)
+    offset_x = int(w * position_shift_x)
+    position_shift_y = random_float(*center_point_range_shift)
+    offset_y = int(w * position_shift_y)
+
+    watermark = Image.open("wmdetection/dataset/shutterstock-logo.png")
+    watermark = np.array(watermark).astype(np.float32)
+    watermark = np.stack([watermark] * 3, axis=-1)
+
+    h_wm, w_wm, _ = watermark.shape
+    wm_new_width = random.randint(w // 3, 2 * w // 3)
+    wm_new_height = int(h_wm * (wm_new_width / w_wm))
+    watermark = cv2.resize(watermark, (wm_new_width, wm_new_height), interpolation=cv2.INTER_AREA)
+    position_x = int((w / 2) - wm_new_width / 2 + offset_x)
+    position_y = int((h / 2) + wm_new_height / 2 + offset_y)
+
+    return place_shutterstock_watermark(
+        pil_image,
+        watermark,
+        alpha=random_float(*text_alpha_range),
+        position=(position_x, position_y),
+        angle=random.randint(*random_angle),
+    )
+
 def place_random_watermark(
         pil_image, 
         text,
@@ -374,6 +406,23 @@ def create_getty_secondary_text_watermark(width, height, text, background_alpha,
     canvas = np.clip(canvas, 0, 255).astype(np.uint8)
     return canvas
 
+def place_shutterstock_watermark(image, watermark, alpha=1, position=(0, 0), angle=0):
+    image = np.array(image).astype(np.float32)
+    h_wm, w_wm, c_wm = watermark.shape
+
+    overlay = np.zeros_like(image).astype(np.float32)
+    output = image.copy().astype(np.float32)
+    overlay[position[1]:position[1] + h_wm, position[0]:position[0] + w_wm] = watermark
+
+    if angle != 0:
+        rotate_M = cv2.getRotationMatrix2D((position[0] + w_wm // 2, position[1] + h_wm // 2), angle, 1)
+        overlay = cv2.warpAffine(overlay, rotate_M, (overlay.shape[1], overlay.shape[0]))
+
+    center_data = get_center_data_for_overlay(overlay, weights=[0.2989, 0.5870, 0.1140])
+    overlay[overlay == 0] = image[overlay == 0]
+    cv2.addWeighted(overlay, alpha, output, 1 - alpha, 0, output)
+
+    return Image.fromarray(np.clip(output, 0, 255).astype(np.uint8)), [center_data]
 
 def place_getty_watermark(image, watermark, secondary_watermark, alpha=1, position=(0, 0), position2=(200, 200), angle=0):
     image = np.array(image).astype(np.float32)
